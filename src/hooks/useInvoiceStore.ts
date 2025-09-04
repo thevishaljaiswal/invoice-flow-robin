@@ -9,8 +9,8 @@ const mockRMs: RelationshipManager[] = [
     email: 'john.smith@company.com',
     phone: '+1-555-0123',
     isActive: true,
-    assignedInvoices: 0,
-    createdAt: new Date(),
+    assignedInvoices: 3,
+    createdAt: new Date('2024-01-15'),
   },
   {
     id: '2',
@@ -18,8 +18,8 @@ const mockRMs: RelationshipManager[] = [
     email: 'sarah.johnson@company.com',
     phone: '+1-555-0124',
     isActive: true,
-    assignedInvoices: 0,
-    createdAt: new Date(),
+    assignedInvoices: 2,
+    createdAt: new Date('2024-01-20'),
   },
   {
     id: '3',
@@ -27,13 +27,141 @@ const mockRMs: RelationshipManager[] = [
     email: 'michael.brown@company.com',
     phone: '+1-555-0125',
     isActive: true,
+    assignedInvoices: 4,
+    createdAt: new Date('2024-01-10'),
+  },
+  {
+    id: '4',
+    name: 'Emma Wilson',
+    email: 'emma.wilson@company.com',
+    phone: '+1-555-0126',
+    isActive: false,
+    assignedInvoices: 1,
+    createdAt: new Date('2024-02-01'),
+  },
+  {
+    id: '5',
+    name: 'David Lee',
+    email: 'david.lee@company.com',
+    phone: '+1-555-0127',
+    isActive: true,
+    isOnLeave: true,
     assignedInvoices: 0,
-    createdAt: new Date(),
+    createdAt: new Date('2024-01-25'),
+  },
+];
+
+const mockInvoices: Invoice[] = [
+  {
+    id: 'INV-2024-001',
+    customerId: 'CUST-001',
+    customerName: 'Acme Corporation',
+    invoiceDate: new Date('2024-01-15'),
+    dueDate: new Date('2024-02-15'),
+    amount: 15000,
+    gstAmount: 2700,
+    project: 'Website Development',
+    businessUnit: 'IT Services',
+    paymentStatus: 'Unpaid',
+    assignedRM: '1',
+    assignedRMName: 'John Smith',
+    assignmentTimestamp: new Date('2024-01-15T10:00:00Z'),
+    assignmentStatus: 'Accepted',
+    followUpInitiated: true,
+    remarks: 'Initial follow-up completed',
+    createdAt: new Date('2024-01-15'),
+    updatedAt: new Date('2024-01-15'),
+  },
+  {
+    id: 'INV-2024-002',
+    customerId: 'CUST-002',
+    customerName: 'TechFlow Inc',
+    invoiceDate: new Date('2024-01-20'),
+    dueDate: new Date('2024-02-20'),
+    amount: 8500,
+    gstAmount: 1530,
+    project: 'Mobile App',
+    businessUnit: 'Mobile Development',
+    paymentStatus: 'Partially Paid',
+    assignedRM: '2',
+    assignedRMName: 'Sarah Johnson',
+    assignmentTimestamp: new Date('2024-01-20T09:30:00Z'),
+    assignmentStatus: 'Pending',
+    amountPaid: 4000,
+    balanceAmount: 4500,
+    paymentDate: new Date('2024-02-01'),
+    paymentMode: 'Bank Transfer',
+    paymentReference: 'TXN-789456123',
+    createdAt: new Date('2024-01-20'),
+    updatedAt: new Date('2024-02-01'),
+  },
+  {
+    id: 'INV-2024-003',
+    customerId: 'CUST-003',
+    customerName: 'Global Systems Ltd',
+    invoiceDate: new Date('2024-01-10'),
+    dueDate: new Date('2024-01-25'),
+    amount: 22000,
+    gstAmount: 3960,
+    project: 'ERP Integration',
+    businessUnit: 'Enterprise Solutions',
+    paymentStatus: 'Paid',
+    assignedRM: '3',
+    assignedRMName: 'Michael Brown',
+    assignmentTimestamp: new Date('2024-01-10T11:15:00Z'),
+    assignmentStatus: 'Accepted',
+    followUpInitiated: true,
+    amountPaid: 22000,
+    balanceAmount: 0,
+    paymentDate: new Date('2024-01-22'),
+    paymentMode: 'UPI',
+    paymentReference: 'UPI-12345ABC',
+    createdAt: new Date('2024-01-10'),
+    updatedAt: new Date('2024-01-22'),
+  },
+  {
+    id: 'INV-2024-004',
+    customerId: 'CUST-004',
+    customerName: 'StartupHub Co',
+    invoiceDate: new Date('2024-01-25'),
+    dueDate: new Date('2024-01-10'), // Overdue
+    amount: 5500,
+    gstAmount: 990,
+    project: 'Brand Identity',
+    businessUnit: 'Design Services',
+    paymentStatus: 'Unpaid',
+    assignedRM: '1',
+    assignedRMName: 'John Smith',
+    assignmentTimestamp: new Date('2024-01-25T14:20:00Z'),
+    assignmentStatus: 'Accepted',
+    followUpInitiated: false,
+    remarks: 'Customer requested extension',
+    createdAt: new Date('2024-01-25'),
+    updatedAt: new Date('2024-01-25'),
+  },
+  {
+    id: 'INV-2024-005',
+    customerId: 'CUST-005',
+    customerName: 'InnovateTech Solutions',
+    invoiceDate: new Date('2024-02-01'),
+    dueDate: new Date('2024-03-01'),
+    amount: 18000,
+    gstAmount: 3240,
+    project: 'Cloud Migration',
+    businessUnit: 'Cloud Services',
+    paymentStatus: 'Unpaid',
+    assignedRM: '2',
+    assignedRMName: 'Sarah Johnson',
+    assignmentTimestamp: new Date('2024-02-01T16:45:00Z'),
+    assignmentStatus: 'Pending',
+    followUpInitiated: false,
+    createdAt: new Date('2024-02-01'),
+    updatedAt: new Date('2024-02-01'),
   },
 ];
 
 export const useInvoiceStore = () => {
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>(mockInvoices);
   const [relationshipManagers, setRelationshipManagers] = useState<RelationshipManager[]>(mockRMs);
   const [lastAssignedRMIndex, setLastAssignedRMIndex] = useState(0);
 
@@ -107,6 +235,47 @@ export const useInvoiceStore = () => {
     );
   }, []);
 
+  const reassignInvoice = useCallback((invoiceId: string, newRMId: string) => {
+    const newRM = relationshipManagers.find(rm => rm.id === newRMId);
+    if (!newRM) return;
+
+    setInvoices(prev => 
+      prev.map(invoice => {
+        if (invoice.id === invoiceId) {
+          // Update old RM count
+          if (invoice.assignedRM) {
+            setRelationshipManagers(rmPrev => 
+              rmPrev.map(rm => 
+                rm.id === invoice.assignedRM 
+                  ? { ...rm, assignedInvoices: rm.assignedInvoices - 1 }
+                  : rm
+              )
+            );
+          }
+
+          // Update new RM count
+          setRelationshipManagers(rmPrev => 
+            rmPrev.map(rm => 
+              rm.id === newRMId 
+                ? { ...rm, assignedInvoices: rm.assignedInvoices + 1 }
+                : rm
+            )
+          );
+
+          return {
+            ...invoice,
+            assignedRM: newRMId,
+            assignedRMName: newRM.name,
+            assignmentTimestamp: new Date(),
+            assignmentStatus: 'Reassigned' as const,
+            updatedAt: new Date(),
+          };
+        }
+        return invoice;
+      })
+    );
+  }, [relationshipManagers]);
+
   const getDashboardStats = useCallback((): DashboardStats => {
     const totalInvoices = invoices.length;
     const totalAmount = invoices.reduce((sum, inv) => sum + inv.amount, 0);
@@ -140,6 +309,7 @@ export const useInvoiceStore = () => {
     updateInvoice,
     addRM,
     updateRM,
+    reassignInvoice,
     getDashboardStats,
     getActiveRMs,
   };

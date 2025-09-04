@@ -9,14 +9,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useInvoiceStore } from '@/hooks/useInvoiceStore';
 import { useToast } from '@/hooks/use-toast';
 import { Invoice } from '@/types';
-import { FileText, Plus, Search, Filter } from 'lucide-react';
+import { FileText, Plus, Search, Filter, UserCheck, RotateCcw, Clock, CheckCircle, AlertCircle } from 'lucide-react';
 
 export const InvoiceManagement = () => {
-  const { invoices, addInvoice, updateInvoice } = useInvoiceStore();
+  const { invoices, relationshipManagers, addInvoice, updateInvoice, reassignInvoice, getActiveRMs } = useInvoiceStore();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [reassignDialogOpen, setReassignDialogOpen] = useState<string | null>(null);
 
   const [newInvoice, setNewInvoice] = useState({
     customerId: '',
@@ -79,6 +80,34 @@ export const InvoiceManagement = () => {
       title: "Success",
       description: "Invoice status updated successfully",
     });
+  };
+
+  const handleReassignInvoice = (invoiceId: string, newRMId: string) => {
+    const newRM = relationshipManagers.find(rm => rm.id === newRMId);
+    reassignInvoice(invoiceId, newRMId);
+    toast({
+      title: "Success",
+      description: `Invoice reassigned to ${newRM?.name}`,
+    });
+    setReassignDialogOpen(null);
+  };
+
+  const getAssignmentStatusIcon = (status: string) => {
+    switch (status) {
+      case 'Pending': return <Clock className="h-3 w-3 text-orange-500" />;
+      case 'Accepted': return <CheckCircle className="h-3 w-3 text-green-500" />;
+      case 'Reassigned': return <RotateCcw className="h-3 w-3 text-blue-500" />;
+      default: return <AlertCircle className="h-3 w-3 text-gray-500" />;
+    }
+  };
+
+  const getAssignmentStatusColor = (status: string) => {
+    switch (status) {
+      case 'Pending': return 'secondary';
+      case 'Accepted': return 'default';
+      case 'Reassigned': return 'outline';
+      default: return 'secondary';
+    }
   };
 
   const formatCurrency = (amount: number) => 
@@ -262,28 +291,71 @@ export const InvoiceManagement = () => {
           ) : (
             <div className="space-y-4">
               {filteredInvoices.map((invoice) => (
-                <div key={invoice.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-semibold">{invoice.customerName}</h4>
-                      <Badge variant="outline">{invoice.id}</Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Due: {formatDate(invoice.dueDate)} • Assigned to: {invoice.assignedRMName || 'Unassigned'}
-                    </p>
-                    {invoice.project && (
-                      <p className="text-xs text-muted-foreground">Project: {invoice.project}</p>
-                    )}
-                  </div>
-                  
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
-                      <p className="font-semibold">{formatCurrency(invoice.amount)}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {invoice.gstAmount && `+${formatCurrency(invoice.gstAmount)} GST`}
+                <div key={invoice.id} className="p-4 border rounded-lg hover:bg-muted/50 transition-colors space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-semibold">{invoice.customerName}</h4>
+                        <Badge variant="outline">{invoice.id}</Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Due: {formatDate(invoice.dueDate)} • 
+                        Created: {formatDate(invoice.invoiceDate)}
                       </p>
+                      {invoice.project && (
+                        <p className="text-xs text-muted-foreground">
+                          Project: {invoice.project} | Unit: {invoice.businessUnit}
+                        </p>
+                      )}
                     </div>
                     
+                    <div className="text-right space-y-1">
+                      <p className="font-semibold">{formatCurrency(invoice.amount)}</p>
+                      {invoice.gstAmount && (
+                        <p className="text-xs text-muted-foreground">
+                          +{formatCurrency(invoice.gstAmount)} GST
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Assignment Info */}
+                  <div className="flex items-center justify-between p-3 bg-muted/30 rounded-md">
+                    <div className="flex items-center gap-3">
+                      <UserCheck className="h-4 w-4 text-primary" />
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium">
+                            Assigned to: {invoice.assignedRMName || 'Unassigned'}
+                          </p>
+                          <Badge variant={getAssignmentStatusColor(invoice.assignmentStatus || '')}>
+                            <div className="flex items-center gap-1">
+                              {getAssignmentStatusIcon(invoice.assignmentStatus || '')}
+                              {invoice.assignmentStatus}
+                            </div>
+                          </Badge>
+                        </div>
+                        {invoice.assignmentTimestamp && (
+                          <p className="text-xs text-muted-foreground">
+                            Assigned: {new Date(invoice.assignmentTimestamp).toLocaleDateString()} at {new Date(invoice.assignmentTimestamp).toLocaleTimeString()}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setReassignDialogOpen(invoice.id)}
+                      disabled={!invoice.assignedRM}
+                    >
+                      <RotateCcw className="mr-1 h-3 w-3" />
+                      Reassign
+                    </Button>
+                  </div>
+
+                  {/* Payment Status & Actions */}
+                  <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Badge variant={
                         invoice.paymentStatus === 'Paid' ? 'default' :
@@ -292,26 +364,105 @@ export const InvoiceManagement = () => {
                         {invoice.paymentStatus}
                       </Badge>
                       
-                      {invoice.paymentStatus !== 'Paid' && (
-                        <Select value={invoice.paymentStatus} onValueChange={(value) => handleStatusUpdate(invoice.id, value as Invoice['paymentStatus'])}>
-                          <SelectTrigger className="w-32">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Unpaid">Unpaid</SelectItem>
-                            <SelectItem value="Partially Paid">Partially Paid</SelectItem>
-                            <SelectItem value="Paid">Paid</SelectItem>
-                          </SelectContent>
-                        </Select>
+                      {invoice.followUpInitiated && (
+                        <Badge variant="outline">Follow-up Initiated</Badge>
                       )}
                     </div>
+                    
+                    {invoice.paymentStatus !== 'Paid' && (
+                      <Select 
+                        value={invoice.paymentStatus} 
+                        onValueChange={(value) => handleStatusUpdate(invoice.id, value as Invoice['paymentStatus'])}
+                      >
+                        <SelectTrigger className="w-40">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Unpaid">Unpaid</SelectItem>
+                          <SelectItem value="Partially Paid">Partially Paid</SelectItem>
+                          <SelectItem value="Paid">Paid</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
+
+                  {/* Payment Details */}
+                  {invoice.amountPaid && invoice.amountPaid > 0 && (
+                    <div className="text-sm text-muted-foreground p-2 bg-green-50 rounded border">
+                      <p>Paid: {formatCurrency(invoice.amountPaid)} • Balance: {formatCurrency(invoice.balanceAmount || 0)}</p>
+                      {invoice.paymentReference && (
+                        <p className="text-xs">Ref: {invoice.paymentReference} | Mode: {invoice.paymentMode}</p>
+                      )}
+                    </div>
+                  )}
+
+                  {invoice.remarks && (
+                    <div className="text-sm p-2 bg-blue-50 rounded border">
+                      <p className="font-medium text-blue-900">Remarks:</p>
+                      <p className="text-blue-700">{invoice.remarks}</p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* Reassign Dialog */}
+      <Dialog open={!!reassignDialogOpen} onOpenChange={() => setReassignDialogOpen(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reassign Invoice</DialogTitle>
+            <DialogDescription>
+              Select a new Relationship Manager for this invoice
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {reassignDialogOpen && (() => {
+              const invoice = invoices.find(inv => inv.id === reassignDialogOpen);
+              const activeRMs = getActiveRMs();
+              
+              return (
+                <>
+                  <div className="p-4 border rounded-lg bg-muted/30">
+                    <h4 className="font-medium">Invoice Details</h4>
+                    <p className="text-sm text-muted-foreground">
+                      {invoice?.customerName} - {formatCurrency(invoice?.amount || 0)}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Currently assigned to: {invoice?.assignedRMName}
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <Label>Select New RM</Label>
+                    <div className="space-y-2">
+                      {activeRMs.map((rm) => (
+                        <div key={rm.id} className="flex items-center justify-between p-3 border rounded hover:bg-muted/50">
+                          <div>
+                            <p className="font-medium">{rm.name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {rm.assignedInvoices} invoices assigned
+                            </p>
+                          </div>
+                          <Button 
+                            onClick={() => handleReassignInvoice(reassignDialogOpen, rm.id)}
+                            disabled={rm.id === invoice?.assignedRM}
+                            variant={rm.id === invoice?.assignedRM ? "secondary" : "default"}
+                          >
+                            {rm.id === invoice?.assignedRM ? "Current" : "Assign"}
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
