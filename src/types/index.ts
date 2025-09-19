@@ -4,8 +4,11 @@ export interface Invoice {
   customerName: string;
   invoiceDate: Date;
   dueDate: Date;
-  amount: number;
-  gstAmount?: number;
+  unitAmount: number;
+  gstPercent: number;
+  gstAmount: number;
+  totalAmount: number;
+  amount: number; // Legacy field for backward compatibility
   taxDetails?: string;
   project?: string;
   businessUnit?: string;

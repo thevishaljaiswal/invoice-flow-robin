@@ -230,13 +230,33 @@ export const RMDashboard = () => {
                       )}
                     </div>
                     
-                    <div className="text-right">
-                      <p className="font-semibold text-lg">{formatCurrency(invoice.amount)}</p>
-                      {invoice.gstAmount && (
-                        <p className="text-xs text-muted-foreground">
-                          +{formatCurrency(invoice.gstAmount)} GST
-                        </p>
-                      )}
+                    <div className="text-right space-y-1">
+                      <div className="bg-muted/50 p-3 rounded-md space-y-1">
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="text-muted-foreground">Unit Amount:</span>
+                          <span className="font-medium">{formatCurrency(invoice.unitAmount)}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="text-muted-foreground">GST ({invoice.gstPercent}%):</span>
+                          <span className="font-medium">{formatCurrency(invoice.gstAmount)}</span>
+                        </div>
+                        <div className="border-t pt-1 flex justify-between items-center">
+                          <span className="font-semibold">Total Amount:</span>
+                          <span className="font-bold text-lg">{formatCurrency(invoice.totalAmount)}</span>
+                        </div>
+                        {invoice.amountPaid !== undefined && (
+                          <>
+                            <div className="flex justify-between items-center text-sm text-success">
+                              <span>Paid:</span>
+                              <span className="font-medium">{formatCurrency(invoice.amountPaid)}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-sm text-destructive">
+                              <span>Balance:</span>
+                              <span className="font-medium">{formatCurrency(invoice.balanceAmount || 0)}</span>
+                            </div>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
 

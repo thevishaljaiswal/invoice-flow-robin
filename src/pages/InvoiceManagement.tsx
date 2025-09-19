@@ -24,8 +24,8 @@ export const InvoiceManagement = () => {
     customerName: '',
     invoiceDate: new Date().toISOString().split('T')[0],
     dueDate: '',
-    amount: 0,
-    gstAmount: 0,
+    unitAmount: 0,
+    gstPercent: 18,
     project: '',
     businessUnit: '',
     paymentStatus: 'Unpaid' as const,
@@ -39,7 +39,7 @@ export const InvoiceManagement = () => {
   });
 
   const handleCreateInvoice = () => {
-    if (!newInvoice.customerName || !newInvoice.dueDate || newInvoice.amount <= 0) {
+    if (!newInvoice.customerName || !newInvoice.dueDate || newInvoice.unitAmount <= 0) {
       toast({
         title: "Error",
         description: "Please fill in all required fields",
@@ -48,11 +48,17 @@ export const InvoiceManagement = () => {
       return;
     }
 
+    const gstAmount = (newInvoice.unitAmount * newInvoice.gstPercent) / 100;
+    const totalAmount = newInvoice.unitAmount + gstAmount;
+
     const invoice = addInvoice({
       ...newInvoice,
       customerId: newInvoice.customerId || `CUST-${Date.now()}`,
       invoiceDate: new Date(newInvoice.invoiceDate),
       dueDate: new Date(newInvoice.dueDate),
+      gstAmount,
+      totalAmount,
+      amount: totalAmount, // For backward compatibility
     });
 
     toast({
@@ -65,8 +71,8 @@ export const InvoiceManagement = () => {
       customerName: '',
       invoiceDate: new Date().toISOString().split('T')[0],
       dueDate: '',
-      amount: 0,
-      gstAmount: 0,
+      unitAmount: 0,
+      gstPercent: 18,
       project: '',
       businessUnit: '',
       paymentStatus: 'Unpaid',
@@ -185,23 +191,23 @@ export const InvoiceManagement = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="amount">Invoice Amount *</Label>
+                  <Label htmlFor="unitAmount">Unit Amount *</Label>
                   <Input
-                    id="amount"
+                    id="unitAmount"
                     type="number"
-                    value={newInvoice.amount}
-                    onChange={(e) => setNewInvoice(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
+                    value={newInvoice.unitAmount}
+                    onChange={(e) => setNewInvoice(prev => ({ ...prev, unitAmount: parseFloat(e.target.value) || 0 }))}
                     placeholder="0.00"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="gstAmount">GST Amount</Label>
+                  <Label htmlFor="gstPercent">GST Percentage</Label>
                   <Input
-                    id="gstAmount"
+                    id="gstPercent"
                     type="number"
-                    value={newInvoice.gstAmount}
-                    onChange={(e) => setNewInvoice(prev => ({ ...prev, gstAmount: parseFloat(e.target.value) || 0 }))}
-                    placeholder="0.00"
+                    value={newInvoice.gstPercent}
+                    onChange={(e) => setNewInvoice(prev => ({ ...prev, gstPercent: parseFloat(e.target.value) || 18 }))}
+                    placeholder="18"
                   />
                 </div>
               </div>
@@ -226,6 +232,27 @@ export const InvoiceManagement = () => {
                   />
                 </div>
               </div>
+
+              {/* Amount Calculation Preview */}
+              {newInvoice.unitAmount > 0 && (
+                <div className="bg-muted/30 p-3 rounded-md space-y-2">
+                  <h4 className="font-medium text-sm">Amount Breakdown</h4>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Unit Amount:</span>
+                      <span>{formatCurrency(newInvoice.unitAmount)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">GST ({newInvoice.gstPercent}%):</span>
+                      <span>{formatCurrency((newInvoice.unitAmount * newInvoice.gstPercent) / 100)}</span>
+                    </div>
+                    <div className="flex justify-between border-t pt-1 font-semibold">
+                      <span>Total Amount:</span>
+                      <span>{formatCurrency(newInvoice.unitAmount + (newInvoice.unitAmount * newInvoice.gstPercent) / 100)}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
             <div className="flex justify-end gap-3">
               <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
@@ -310,12 +337,20 @@ export const InvoiceManagement = () => {
                     </div>
                     
                     <div className="text-right space-y-1">
-                      <p className="font-semibold">{formatCurrency(invoice.amount)}</p>
-                      {invoice.gstAmount && (
-                        <p className="text-xs text-muted-foreground">
-                          +{formatCurrency(invoice.gstAmount)} GST
-                        </p>
-                      )}
+                      <div className="bg-muted/50 p-2 rounded space-y-1 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Unit:</span>
+                          <span>{formatCurrency(invoice.unitAmount)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">GST ({invoice.gstPercent}%):</span>
+                          <span>{formatCurrency(invoice.gstAmount)}</span>
+                        </div>
+                        <div className="flex justify-between border-t pt-1">
+                          <span className="font-semibold">Total:</span>
+                          <span className="font-semibold">{formatCurrency(invoice.totalAmount)}</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
@@ -428,7 +463,7 @@ export const InvoiceManagement = () => {
                   <div className="p-4 border rounded-lg bg-muted/30">
                     <h4 className="font-medium">Invoice Details</h4>
                     <p className="text-sm text-muted-foreground">
-                      {invoice?.customerName} - {formatCurrency(invoice?.amount || 0)}
+                      {invoice?.customerName} - {formatCurrency(invoice?.totalAmount || 0)}
                     </p>
                     <p className="text-sm text-muted-foreground">
                       Currently assigned to: {invoice?.assignedRMName}
